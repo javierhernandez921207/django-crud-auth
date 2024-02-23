@@ -1,7 +1,8 @@
 from django.http import HttpResponse
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from django.contrib.auth import login, authenticate
 # Create your views here.
 def home(request):
     return render(request, 'home.html')
@@ -15,8 +16,12 @@ def signup(request):
             try:
                 user = User.objects.create_user(request.POST['username'], password=request.POST['password1'])
                 user.save()
-                return HttpResponse('User created')
+                login(request, user)
+                return redirect('tasks')
             except:
-                return HttpResponse('User already exists')           
+                return render(request, 'signup.html', {'form': UserCreationForm(), 'error': 'Username already taken'})          
         else:
-            return HttpResponse('Passwords did not match')
+            return render (request, 'signup.html', {'form': UserCreationForm(), 'error': 'Passwords did not match'})
+        
+def tasks(request):
+    return render(request, 'tasks.html')
