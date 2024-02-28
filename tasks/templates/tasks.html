@@ -3,7 +3,10 @@
 <h1>Tasks</h1>
 <ul>
     {% for task in tasks %}
-        <li>{{ task.title }}</li>
+        <li><a href="{% url 'view_task' task.id %}">{{ task.title }}</a></li>
+        <li>{{ task.description }}</li>
+        <li>{{ task.important }}</li>
+        <li>{{ task.datecomplete | date:'M j Y:i' }}</li>
     {% endfor %}
 </ul>
 {% endblock %}
