@@ -15,12 +15,12 @@ def home(request):
 @login_required
 def tasks(request):
     tasks = Task.objects.filter(user=request.user, datecomplete__isnull=True)
-    return render(request, 'tasks.html', {'tasks': tasks})
+    return render(request, 'tasks.html', {'tasks': tasks, 'title': 'Pending Tasks'})
 
 @login_required
 def tasks_completed(request):
     tasks = Task.objects.filter(user=request.user , datecomplete__isnull=False)
-    return render(request, 'tasks.html', {'tasks': tasks})
+    return render(request, 'tasks.html', {'tasks': tasks, 'title': 'Completed Tasks'})
 
 @login_required
 def create_task(request):

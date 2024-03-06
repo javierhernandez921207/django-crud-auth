@@ -1,10 +1,23 @@
 {% extends 'base.html' %}
 {% block content %}
-<h1>Login</h1>
-<form method="post">
-    {% csrf_token %}
-    <p style="color: brown;">{{ error }}</p>
-    {{ form.as_p}}
-    <button>Login</button>
-</form>
+<main class="container">
+    <div class="row">
+        <div class="col-md-6 offset-md-3 card p-5">
+            <h1>Login</h1>
+            <form method="post">
+                {% csrf_token %}
+                <p style="color: brown;">{{ error }}</p>               
+                <div class="mb-3">
+                    <label for="username" class="form-label">Username</label>
+                    <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+                <div class="mb-3">
+                    <label for="password" class="form-label">Password</label>
+                    <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+                <button class="btn btn-primary">Login</button>
+            </form>
+        </div>
+    </div>
+</main>
 {% endblock %}
