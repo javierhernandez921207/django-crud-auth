@@ -1,27 +1,32 @@
+import os
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout
 from django.utils import timezone
+import stripe
 from .forms import TaskForm
 from .models import Product, Task
 from django.contrib.auth.decorators import login_required
 from .cart import Cart
 # Create your views here.
 
-
 def home(request):
     return render(request, 'home.html')
+
+
 @login_required
 def tasks(request):
     tasks = Task.objects.filter(user=request.user, datecomplete__isnull=True)
     return render(request, 'tasks.html', {'tasks': tasks, 'title': 'Pending Tasks'})
 
+
 @login_required
 def tasks_completed(request):
-    tasks = Task.objects.filter(user=request.user , datecomplete__isnull=False)
+    tasks = Task.objects.filter(user=request.user, datecomplete__isnull=False)
     return render(request, 'tasks.html', {'tasks': tasks, 'title': 'Completed Tasks'})
+
 
 @login_required
 def create_task(request):
@@ -35,9 +40,10 @@ def create_task(request):
             newTask.save()
             return redirect('tasks')
         except ValueError:
-            return render(request, 'create_task.html', {'form': TaskForm(), 'error': 'Bad data passed in. Try again.'}) 
+            return render(request, 'create_task.html', {'form': TaskForm(), 'error': 'Bad data passed in. Try again.'})
 
-@login_required       
+
+@login_required
 def view_task(request, task_pk):
     if request.method == 'GET':
         task = get_object_or_404(Task, pk=task_pk, user=request.user)
@@ -52,7 +58,8 @@ def view_task(request, task_pk):
         except ValueError:
             return render(request, 'view_task.html', {'task': task, 'form': form, 'error': 'Bad info'})
 
-@login_required       
+
+@login_required
 def complete_task(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk, user=request.user)
     if request.method == 'POST':
@@ -61,16 +68,18 @@ def complete_task(request, task_pk):
             task.save()
             return redirect('tasks')
         except ValueError:
-            return render(request, 'view_task.html', {'task': task, 'error': 'Bad info'})        
+            return render(request, 'view_task.html', {'task': task, 'error': 'Bad info'})
     else:
         return render(request, 'view_task.html', {'task': task})
 
-@login_required    
+
+@login_required
 def delete_task(request, task_pk):
     task = get_object_or_404(Task, pk=task_pk, user=request.user)
     if request.method == 'POST':
         task.delete()
         return redirect('tasks')
+
 
 def signup(request):
     if request.method == 'GET':
@@ -89,9 +98,11 @@ def signup(request):
         else:
             return render(request, 'signup.html', {'form': UserCreationForm(), 'error': 'Passwords did not match'})
 
+
 def singout(request):
     logout(request)
     return redirect('index')
+
 
 def singin(request):
     if request.method == 'POST':
@@ -112,9 +123,16 @@ def shop(request):
     products = Product.objects.all()
     return render(request, 'shop.html', {'products': products})
 
+
 @login_required
 def cart(request):
-    return render(request, 'cart.html')
+    cart = Cart(request)
+    products = cart.get_prods()
+    total = 0
+    for product in products:
+        total += product.price
+    return render(request, 'cart.html', {'products': products, 'total': total})
+
 
 @login_required
 def cart_add(request):
@@ -123,5 +141,57 @@ def cart_add(request):
         product_id = int(request.POST.get('product_id'))
         product = get_object_or_404(Product, pk=product_id)
         cart.add(product=product)
-        response = JsonResponse({'Product name': product.name})
+        cart_len = cart.__len__()
+        response = JsonResponse({'cart_quantity': cart_len})
         return response
+
+
+@login_required
+def cart_delete(request):
+    cart = Cart(request)
+    if request.POST.get('action') == 'post':
+        product_id = int(request.POST.get('product_id'))
+        product = get_object_or_404(Product, pk=product_id)
+        cart.delete(product=product)
+        cart_len = cart.__len__()
+        response = JsonResponse({'cart_quantity': cart_len})
+        return response
+    return redirect('cart')
+
+
+@login_required
+def checkout(request):  
+    cart = Cart(request)  
+    stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+    HOST_DIR = os.environ.get('HOST_DIR')
+    line_items = []
+    for product in cart.get_prods():
+        line_items.append({
+            'price_data': {
+                'currency': 'usd',
+                'product_data': {
+                    'name': product.name,
+                },
+                'unit_amount': int(product.price * 100),
+            },
+            'quantity': 1,
+        })
+         
+    checkout_session = stripe.checkout.Session.create(
+        line_items= line_items,
+        mode='payment',
+        success_url= HOST_DIR + '/shop/success/',
+        cancel_url= HOST_DIR + '/cart/',
+    )
+    request.session['checkout_session_id'] = checkout_session.id
+    return redirect(checkout_session.url, code=303)
+
+def success(request):
+    stripe.api_key = os.environ.get('STRIPE_SECRET_KEY')
+    if request.session['checkout_session_id']:
+        session = stripe.checkout.Session.retrieve(request.session['checkout_session_id'])
+        print(session)
+    cart = Cart(request)
+    for product in cart.get_prods():
+        cart.delete(product=product)
+    return render(request, 'success.html')

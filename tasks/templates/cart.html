@@ -1,0 +1,53 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2 card p-5">
+            <h1>Shoping cart</h1>
+            <hr>
+            <div class="row">
+                {% for product in products %}
+                <div class="col-12">
+                    <div class="card m-1">
+                        <div class="card-body">
+                            <h5 class="card-title">{{product.name}}</h5>
+                            <p class="card-text">{{product.description}}</p>
+                            <p class="card-text">${{product.price}}</p>
+                            <button type="submit" class="btn btn-danger remove-from-cart" value="{{product.pk}}">
+                                Remove from cart
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+                <div class="col-12">
+                    <h3>Total: ${{total}}</h3>
+                    <form action="{% url 'checkout' %}" method="post">
+                        {% csrf_token %}
+                        <button class="btn btn-primary" type="submit">Checkout</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+</main>
+<script>
+    $(document).on('click', '.remove-from-cart', function (e) {
+        var product_id = $(this).val();
+        console.log(product_id);
+        $.ajax({
+            url: "{% url 'delete_from_cart' %}",
+            type: 'POST',
+            data: {
+                product_id: product_id,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                action: 'post'
+            },
+            success: function (response) {
+                console.log(response);
+                window.location.reload();
+                $('#cart_quantity').text(response.cart_quantity);
+            }
+        });
+    });
+</script>
+{% endblock %}
