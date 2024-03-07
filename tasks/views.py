@@ -1,12 +1,13 @@
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render, redirect
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.models import User
 from django.contrib.auth import login, logout
 from django.utils import timezone
 from .forms import TaskForm
-from .models import Task
+from .models import Product, Task
 from django.contrib.auth.decorators import login_required
+from .cart import Cart
 # Create your views here.
 
 
@@ -104,3 +105,23 @@ def singin(request):
             return render(request, 'signin.html', {'form': AuthenticationForm(), 'error': 'Username or password is incorrect'})
     else:
         return render(request, 'signin.html', {'form': AuthenticationForm()})
+
+
+@login_required
+def shop(request):
+    products = Product.objects.all()
+    return render(request, 'shop.html', {'products': products})
+
+@login_required
+def cart(request):
+    return render(request, 'cart.html')
+
+@login_required
+def cart_add(request):
+    cart = Cart(request)
+    if request.POST.get('action') == 'post':
+        product_id = int(request.POST.get('product_id'))
+        product = get_object_or_404(Product, pk=product_id)
+        cart.add(product=product)
+        response = JsonResponse({'Product name': product.name})
+        return response

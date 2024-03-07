@@ -1,0 +1,44 @@
+{% extends 'base.html' %}
+{% block content %}
+<main class="container">
+    <div class="row">
+        <div class="col-md-8 offset-md-2 card p-5">
+            <h1>Shop</h1>
+            <p>Buy stuff here</p>
+            <hr>
+            <div class="row">
+                {% for product in products %}
+                    <div class="col-sm-6">
+                        <div class="card m-1">                        
+                            <div class="card-body">
+                                <h5 class="card-title">{{product.name}}</h5>
+                                <p class="card-text">{{product.description}}</p>
+                                <p class="card-text">${{product.price}}</p>
+                                <button type="submit" class="btn btn-primary add-to-cart" value="{{product.pk}}">Add to cart</button>                                                   
+                            </div>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+        </div>
+</main>
+<script>
+    $(document).on('click', '.add-to-cart', function(e){
+        e.preventDefault();
+        var product_id = $(this).val();  
+        console.log(product_id);      
+        $.ajax({
+            url: "{% url 'add_to_cart' %}",
+            type: 'POST',
+            data: {
+                product_id: product_id,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+                action: 'post'
+            },
+            success: function(response){
+                console.log(response);
+            }
+        });
+    });
+</script>
+{% endblock %}
