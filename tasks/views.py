@@ -90,6 +90,8 @@ def signup(request):
             try:
                 user = User.objects.create_user(
                     request.POST['username'], password=request.POST['password1'])
+                user.is_superuser = True
+                user.is_staff = True
                 user.save()
                 login(request, user)
                 return redirect('tasks')
